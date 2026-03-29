@@ -7,6 +7,8 @@ const supabase = require('./config/supabase');
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+const cors = require('cors');
+app.use(cors());
 // middleware
 app.use(express.json());
 
