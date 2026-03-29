@@ -5,7 +5,7 @@ const multer = require('multer');
 const supabase = require('./config/supabase');
 
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 
 // middleware
 app.use(express.json());
@@ -239,7 +239,7 @@ app.get("/users/:id", async (req, res) => {
   }
 });
 
-//admin to fetch all user
+//admin to fetch all user+vidoes
 app.get("/users", async (req, res) => {
   try {
     const { data, error } = await supabase
