@@ -241,6 +241,120 @@ app.get("/users/:id", async (req, res) => {
   }
 });
 
+
+// need a api for sprint data gathered  
+
+// api for user logout
+//apifor delete account 
+//
+
+
+
+// admin login 
+app.post("/admin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const { data, error } = await supabase
+      .from("admins")
+      .select("*")
+      .eq("email", email)
+      .eq("password", password)
+      .single();
+
+    if (error || !data) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    res.json({
+      message: "Login successful",
+      adminId: data.id,
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// admin votes 
+app.post("/admin/vote", async (req, res) => {
+  try {
+    const { videoId, adminId, vote } = req.body;
+
+    if (!videoId || !adminId || !vote) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
+    // insert or update vote
+    const { error: voteError } = await supabase
+      .from("votes")
+      .upsert({
+        athlete_id: videoId,
+        admin_id: adminId,
+        vote: vote,
+      });
+
+    if (voteError) throw voteError;
+
+    // get all votes
+    const { data: votes, error } = await supabase
+      .from("votes")
+      .select("*")
+      .eq("athlete_id", videoId);
+
+    if (error) throw error;
+
+    // 🔴 IF ANY REJECT → REJECTED
+    if (votes.some(v => v.vote === "reject")) {
+      await supabase
+        .from("videos")
+        .update({ status: "rejected" })
+        .eq("id", videoId);
+
+      return res.json({ status: "rejected" });
+    }
+
+    // 🟢 IF ALL 4 APPROVE → APPROVED
+    if (votes.length === 4 && votes.every(v => v.vote === "approve")) {
+      await supabase
+        .from("videos")
+        .update({ status: "approved" })
+        .eq("id", videoId);
+
+      return res.json({ status: "approved" });
+    }
+
+    // 🟡 OTHERWISE → PENDING
+    res.json({ status: "pending" });
+
+  } catch (err) {
+    console.error("VOTE ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// debugging for postman only 
+app.get("/admin/votes/:videoId", async (req, res) => {
+  try {
+    const { videoId } = req.params;
+
+    const { data, error } = await supabase
+      .from("votes")
+      .select("*")
+      .eq("athlete_id", videoId);
+
+    if (error) throw error;
+
+    res.json(data);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
 //admin to fetch all user+vidoes
 app.get("/users", async (req, res) => {
   try {
